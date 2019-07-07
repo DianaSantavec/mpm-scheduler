@@ -260,12 +260,6 @@ pdladr:
 
 ;  declare first$time boolean;
 
-; /*moje*/
-; definise bajt za pamcenje broj puta koliko je proces bio na procesoru
-    bpcpu:  db  0
-;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
-    plfirstpd:    dw    0
-; /*kraj mog*/
 
 ;/*
 ;  delay$list$insert:
@@ -695,7 +689,7 @@ noz80save:
 	MOV	L,C
 	MOV	B,D
 	MOV	C,E
-	XCHG; HL u DE
+	XCHG
 ;          end;
 	JMP	@6
 
@@ -756,7 +750,6 @@ noz80save:
 @15:
 ;             if dsptch$param = 0ffh or /* sys pr. term */
 ;               user$process (pdadr) then
-
 	PUSH	D
 	CALL	USERPROCESS
 	POP	D
@@ -808,28 +801,6 @@ noz80save:
 @30:
 	; BC = PDADR, HL = NEXTTHREADPTR
 ;              do while (pdladr := next$thread) <> pdadr;
-
-;   /*MOJE*/
-;   setuje plfirstpd na nulu, da bih izgubila taj bivsi prvi, ako se taj izbacuje
-    PUSH H  ;da ne bih nesto izmenila greskom
-    PUSH A
-    
-    LHLD PLFIRSTPD
-    MVI A,$BCH  ;DA LI MORAM STAVITI DA JE VREDNOST
-    CMP HL  ;zero je setovan ako su isti A i HL
-    JNC SKIP ;preskoci ako nisu isti(nemoj brisati iz PLFIRSTPD
-
-    MVI HL,0H
-    SHLD PLFIRSTPD
-    SHLD BPCPU
-
-SKIP:
-    POP A
-    POP H
-    
-;   /*kraj mog*/
-    
-
 	MOV	E,M
 	INX	H
 	MOV	D,M
@@ -1161,68 +1132,6 @@ noz80restore:
 	lhld	svhl
 
 	EI
-
-;/*MOJE*/
-
-;//provera da li je counter na nuli ali ako ovde stavim svaki poziv dispatch ce promeniti vrednost countera, sto NIJE dobro jer se dispatch poziva sa vise mesta 
-;//i vise puta? u toku jednog interrupta
-
-;//proverava da li jos uvek postoji Process Descriptor 
-MVI A,0H
-LHLD PLFIRSTPD
-ORA M
-JZ TERMINATED
-
-;// ovde zbog manjeg broja instrukcija
-;umanji counter
-LHLD BPCPU
-DEC HL
-
-;//proverava da li je counter dosao do nule
-MVI A,0H  
-LHLD BPCPU
-ORA M   ;/setuje zero flag ako je counter 0
-JZ FINISHED
- 
-;ako nije nula prevezuje se da prethodno prvi bude opet prvi
-LHLD PLFIRSTPD
-MVI DE,HL //prvo se plfirstpd loaduje da ne bih posle izgubila next, a tamo mi treba zbog M registra
-LHLD RLR
-MVI A,HL
-
-WHILE:
-    CMP DE
-    JZ BREAK
-    MVI HL,M    ;????????????????????
-    JN WHILE
-
-BREAK:
-MVI BC,
-
-
-;////////////////////xdos call dispatch gubi smisao
-
-
-;DO (GO NEXT) WHILE *PL != PLFIRSTPD
-
-FINISHED: 
-;takodje ce omoguciti i inicijalizaciju posle butovanja
-;// premesta Process Descriptor na kraj
-; DO (GO NEXT WHILE *PL != PLFIRSTPD) 
-;//setuje novi prvi process descriptor
-LHLD RLR
-SHLD PLFIRSTPD    
-MVI HL,0H   /NEENENENE
-SHLD BPCPU
-
-TERMINATED:
-;//ucitava koji je novi prvi
-LHLD RLR
-SHLD PLFIRSTPD
-; i setuje counter
-
-
-/*kraj*/
 	RET
 
 ;    end dispatch;
