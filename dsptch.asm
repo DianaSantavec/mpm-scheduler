@@ -263,6 +263,11 @@ BPCPU:
 ;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
 PLFIRSTPD:
 	DW    0
+;desni shift SHRT
+SHRT:
+	RRC
+	ANI 7FH
+RET
 ; /*kraj mog*/
 
 ;  declare pdl based pdladr process$descriptor;
