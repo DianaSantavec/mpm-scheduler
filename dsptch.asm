@@ -256,6 +256,15 @@ nextthreadptr:
 pdladr:
 	dw	0
 
+; /*moje*/
+; definise bajt za pamcenje broj puta koliko je proces bio na procesoru
+BPCPU: 
+	DW  0
+;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
+PLFIRSTPD:
+	DW    0
+; /*kraj mog*/
+
 ;  declare pdl based pdladr process$descriptor;
 
 ;  declare first$time boolean;
