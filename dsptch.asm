@@ -498,20 +498,7 @@ insertprocess:
 	JNC	@5
 ;           (pd.priority < pdl.priority) then
 ;        do;
-;          pd.pl = nxtpdl;
-@27A:
-	MOV	A,L
-	STAX	D
-	INX	D
-	MOV	A,H
-	STAX	D
-	DCX	D
-;          nxtpdl = pdadr;
-	MOV	A,D
-	STAX	B
-	DCX	B
-	MOV	A,E
-	STAX B
+
 ;          return;
 	RET
 ;        end;
