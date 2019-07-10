@@ -503,7 +503,7 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-	JNC	@5
+	JNC	@27A	;bilo @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
@@ -1145,6 +1145,7 @@ noz80restore:
 	sphl
 	lhld	svhl
 
+;/*MOJE*/
 	EI
 	RET
 
