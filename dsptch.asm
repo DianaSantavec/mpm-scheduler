@@ -258,16 +258,16 @@ pdladr:
 
 ; /*moje*/
 ; definise bajt za pamcenje broj puta koliko je proces bio na procesoru
-BPCPU: 
-	DW  0
+bpcpu: 
+	db  1
 ;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
-PLFIRSTPD:
-	DW    0
+plfirstpd:
+	dw    0
 ;desni shift SHRT
-SHRT:
-	RRC
-	ANI 7FH
-RET
+shrt:
+	rrc
+	ani 7fh
+ret
 ; /*kraj mog*/
 
 ;  declare pdl based pdladr process$descriptor;
@@ -1154,6 +1154,44 @@ noz80restore:
 	lhld	svhl
 
 ;/*MOJE*/
+	lhld bpcpu
+	dcx hl
+	mov a,h
+	ora l
+	jz terminate ;//potrosio je i ostaje na kraju i setuje se novi problem sa inicijalizacijom jer saad imam -1
+	
+	;prebaciti ga na pocetak
+	lhld rlr
+	jmp end
+
+terminate:
+	lhld rlr
+	shld plfirstpd
+	
+	inx d
+	inx d
+	inx d
+	ldax d
+	dcx d
+	dcx d
+	dcx d
+
+	shrt
+	shrt
+	shrt
+	shrt
+
+	inr a ;da ne bi bilo 0 za idle process 1-16 opseg
+
+	stax bpcpu
+	
+	;test
+	mvi b,30h
+	sub b
+	out 01h
+
+end:
+;/*kraj mog*/
 	EI
 	RET
 
