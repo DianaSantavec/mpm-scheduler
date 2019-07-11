@@ -499,11 +499,19 @@ insertprocess:
 	INX	H
 	INX	H
 	INX	H
-	SUB	M
+	;push a
+	;push b
+	;mvi a,0FFh
+	;mvi b,0FFFFh
+	;sub b	;da uveksetujem carry just in case...
+	;pop b
+	;pop a
+	;SUB	M
 	DCX	H
 	DCX	H
 	DCX	H
-	JNC	@27A	;bilo @5
+	;JNC @5
+	jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
