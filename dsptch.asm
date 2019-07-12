@@ -259,15 +259,16 @@ pdladr:
 ; /*moje*/
 ; definise bajt za pamcenje broj puta koliko je proces bio na procesoru
 bpcpu: 
-	db  1
+	db	1
 ;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
 plfirstpd:
 	dw    0
-;desni shift SHRT
-shrt:
-	rrc
-	ani 7fh
-ret
+
+;push h
+;	mvi h,76h
+	;mvi l,0ffh
+;	mvi m,0ffh
+;pop h
 ; /*kraj mog*/
 
 ;  declare pdl based pdladr process$descriptor;
@@ -1154,20 +1155,48 @@ noz80restore:
 	lhld	svhl
 
 ;/*MOJE*/
-	lhld bpcpu
-	dcx hl
-	mov a,h
+	push b
+	push d
+	push h
+	push psw
+
+	lda bpcpu
+	
+	dcr a	
+	
+	mov l,00h
 	ora l
-	jz terminate ;//potrosio je i ostaje na kraju i setuje se novi problem sa inicijalizacijom jer saad imam -1
+
+	jz terminate ;//potrosio je i ostaje na kraju i setuje se novi
 	
 	;prebaciti ga na pocetak
-	lhld rlr
-	jmp end
+	;mvi h,76h
+	;mvi l,0ffh
+	;mvi m,88h
+	;lhld rlr
+	;sta bpcpu
+	jmp endmy
 
 terminate:
 	lhld rlr
 	shld plfirstpd
 	
+	mov d,h
+	mov e,l
+
+;test
+	;mvi h,76h
+	;mvi l,0ffh
+	;ldax d
+	;mov m,d
+	;dcr l
+	;inx d
+	;ldax d
+	;mov m,d
+
+	;dcx d
+	;kraj test
+
 	inx d
 	inx d
 	inx d
@@ -1176,21 +1205,49 @@ terminate:
 	dcx d
 	dcx d
 
-	shrt
-	shrt
-	shrt
-	shrt
+	mvi h,76h
+	mvi l,0feh
+	mov m,a
 
-	inr a ;da ne bi bilo 0 za idle process 1-16 opseg
+	call shrt
+	call shrt
+	call shrt
+	call shrt
 
-	stax bpcpu
-	
+	;15 - a da bi se idle (255) izvrsio 0 (tj) put, a 0 15 (tj 16)puta
+	mov l,a
+	mvi a,10h
+	sub l
+
+	mvi h,76h
+	mvi l,0ffh
+	mov m,a
+
+	;inr a ;da ne bi bilo 0 za idle process 1-16 opseg
+
+	;sta bpcpu
+	jmp endmy
+
+	;mvi h,76h
+	;mvi l,0ffh
+	;mvi m,a
+
 	;test
-	mvi b,30h
-	sub b
-	out 01h
+	;mvi b,30h
+	;add b
+	;out 01h
 
-end:
+;desni shift SHRT
+shrt:
+	rrc
+	ani 7fh
+ret
+
+endmy:
+	pop psw
+	pop h
+	pop d
+	pop b
 ;/*kraj mog*/
 	EI
 	RET
