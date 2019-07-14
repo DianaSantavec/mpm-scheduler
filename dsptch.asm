@@ -264,11 +264,11 @@ bpcpu:
 plfirstpd:
 	dw    0
 
-;push h
-;	mvi h,76h
-	;mvi l,0ffh
-;	mvi m,0ffh
-;pop h
+push h
+	mvi h,76h
+	mvi l,0ffh
+	mvi m,0feh
+pop h
 ; /*kraj mog*/
 
 ;  declare pdl based pdladr process$descriptor;
@@ -1161,41 +1161,112 @@ noz80restore:
 	push psw
 
 	lda bpcpu
-	
+;test0
 	dcr a	
-	
-	mov l,00h
-	ora l
+	sta bpcpu
 
+	;mov l,00h
+	;ora l
 	jz terminate ;//potrosio je i ostaje na kraju i setuje se novi
-	
+	;da li je prvi zapravo trazeni
+	lhld plfirstpd
+	lxi d,rlr
+	ldax d
+	cmp l
+	jnz notfir 
+	inx d
+	ldax d
+	cmp h
+	jz endmy
+
+notfir:
+	mvi a,4eh
+	out 01h
 	;prebaciti ga na pocetak
-	;mvi h,76h
-	;mvi l,0ffh
-	;mvi m,88h
-	;lhld rlr
-	;sta bpcpu
+	;hl je nextv
+	lhld plfirstpd
+	mov d,h
+	mov e,l
+	lxi b,rlr
+
+while:
+	mvi a,57h
+	out 01h
+
+	ldax b
+	mov l,a
+	inx b
+	ldax b
+	mov h,a
+	ora l
+	jz terminate ;ovaj je idle i znaci da je moj proces zavrsio
+	;IDLE mi je bitniji uslov zato ide ovim redom
+	call compare
+	cnz step
+	jnz while ;nisu jednaki 
+
+insert:
+	mvi a,49h
+	out 01h
+
+	;pl_trenutnog = pl_sledeceg_posle_trazenog
+	push b
+	mov c,m
+	inx h
+	mov b,m
+	dcx h
+	pop b
+
+	;pl_trazenog = RLR
+	push h
+	lhld rlr
+	mov a,l
+	stax d
+	inx d
+	mov a,h
+	stax d
+	dcx d
+	pop h
+
+	;rlr = plfirstpd
+	lxi b,rlr
+	mov a,e
+	ldax b
+	inx b
+	mov a,d
+	ldax b
 	jmp endmy
 
+compare:
+	mvi a,43h
+	out 01h
+	mov a,d
+	cmp h
+	rnz 
+	mov a,e
+	cmp l	
+	ret
+
+step:
+	mvi a,53h
+	out 01h
+	mov b,h
+	mov c,l
+
+	ret
+
 terminate:
+
+	mvi a,54h
+	out 01h
+
 	lhld rlr
 	shld plfirstpd
 	
 	mov d,h
 	mov e,l
 
-;test
-	;mvi h,76h
-	;mvi l,0ffh
-	;ldax d
-	;mov m,d
-	;dcr l
-	;inx d
-	;ldax d
-	;mov m,d
-
-	;dcx d
-	;kraj test
+;test1
 
 	inx d
 	inx d
@@ -1205,9 +1276,7 @@ terminate:
 	dcx d
 	dcx d
 
-	mvi h,76h
-	mvi l,0feh
-	mov m,a
+;test2
 
 	call shrt
 	call shrt
@@ -1215,28 +1284,15 @@ terminate:
 	call shrt
 
 	;15 - a da bi se idle (255) izvrsio 0 (tj) put, a 0 15 (tj 16)puta
-	mov l,a
+	mov d,a
 	mvi a,10h
-	sub l
+	sub d
 
-	mvi h,76h
-	mvi l,0ffh
-	mov m,a
-
+;test3
 	;inr a ;da ne bi bilo 0 za idle process 1-16 opseg
-
-	;sta bpcpu
-	jmp endmy
-
-	;mvi h,76h
-	;mvi l,0ffh
-	;mvi m,a
-
-	;test
-	;mvi b,30h
-	;add b
-	;out 01h
-
+	sta bpcpu
+	jmp endmy 
+;test4
 ;desni shift SHRT
 shrt:
 	rrc
@@ -1244,6 +1300,9 @@ shrt:
 ret
 
 endmy:
+	mvi a,45h
+	out 01h
+
 	pop psw
 	pop h
 	pop d
