@@ -264,11 +264,8 @@ bpcpu:
 plfirstpd:
 	dw    0
 
-push h
-	mvi h,76h
-	mvi l,0ffh
-	mvi m,0feh
-pop h
+bpdsp:
+	db 1
 ; /*kraj mog*/
 
 ;  declare pdl based pdladr process$descriptor;
@@ -1044,7 +1041,7 @@ noz80save:
 	lhld	drl
 	xchg
 	mov	m,e
-	inx	h
+	inx	h;bilo LXI valjda greskom
 	mov	m,d
 	dcx	h
 ;              drl = pdadr;
@@ -1160,44 +1157,65 @@ noz80restore:
 	push h
 	push psw
 
+	lhld bpdsp
+	dcx h
+	mvi a,00h
+	ora h
+	jnz con  ;znaci vec je setovano na 76ffh nula
+
+	shld bpdsp
+	lxi h,0ecffh
+	mvi m,00h
+	jmp endmy
+
+con:
+	lxi h,0ecffh
+	mvi b,00h
+	mov a,m
+	ora b
+	jz endmy
+
+;moj dsptch
 	lda bpcpu
-;test0
 	dcr a	
 	sta bpcpu
+	
+	;push psw
+	;mvi l,30h
+	;add l
+	;out 01h
+	;pop psw
 
-	;mov l,00h
-	;ora l
-	jz terminate ;//potrosio je i ostaje na kraju i setuje se novi
-	;da li je prvi zapravo trazeni
+	jz terminate ;ukoliko je iskoristio sve svoje pokusaje
+
+	;de je trazena adresa
 	lhld plfirstpd
-	lxi d,rlr
-	ldax d
-	cmp l
-	jnz notfir 
-	inx d
-	ldax d
-	cmp h
+	mov d,h
+	mov e,l
+	lhld rlr
+	
+	mov a,h
+	cmp d
+	jnz notfir
+
+	mov a,l
+	cmp e
+	;cz ou
 	jz endmy
 
 notfir:
-	mvi a,4eh
-	out 01h
-	;prebaciti ga na pocetak
-	;hl je nextv
 	lhld plfirstpd
 	mov d,h
 	mov e,l
 	lxi b,rlr
 
 while:
-	mvi a,57h
-	out 01h
-
 	ldax b
 	mov l,a
 	inx b
 	ldax b
 	mov h,a
+	dcx b	;ovoga NIJE bilo u prethodnom kodu
 	ora l
 	jz terminate ;ovaj je idle i znaci da je moj proces zavrsio
 	;IDLE mi je bitniji uslov zato ide ovim redom
@@ -1206,16 +1224,15 @@ while:
 	jnz while ;nisu jednaki 
 
 insert:
-	mvi a,49h
-	out 01h
-
 	;pl_trenutnog = pl_sledeceg_posle_trazenog
-	push b
-	mov c,m
+	mov a,m
+	stax b
+	inx b
 	inx h
-	mov b,m
+	mov a,m
+	stax b
+	dcx b
 	dcx h
-	pop b
 
 	;pl_trazenog = RLR
 	push h
@@ -1235,38 +1252,20 @@ insert:
 	inx b
 	mov a,d
 	ldax b
+	dcx b
 	jmp endmy
 
-compare:
-	mvi a,43h
-	out 01h
-	mov a,d
-	cmp h
-	rnz 
-	mov a,e
-	cmp l	
-	ret
-
-step:
-	mvi a,53h
-	out 01h
-	mov b,h
-	mov c,l
-
-	ret
-
 terminate:
-
-	mvi a,54h
-	out 01h
-
 	lhld rlr
 	shld plfirstpd
-	
-	mov d,h
-	mov e,l
 
-;test1
+	;de = adresa prioriteta
+	lxi b,rlr
+	ldax b
+	mov e,a
+	inx b
+	ldax b
+	mov d,a
 
 	inx d
 	inx d
@@ -1275,8 +1274,6 @@ terminate:
 	dcx d
 	dcx d
 	dcx d
-
-;test2
 
 	call shrt
 	call shrt
@@ -1288,21 +1285,51 @@ terminate:
 	mvi a,10h
 	sub d
 
-;test3
-	;inr a ;da ne bi bilo 0 za idle process 1-16 opseg
 	sta bpcpu
+
+	;mvi b,30h
+	;add b
+	;out 01h
+
 	jmp endmy 
-;test4
-;desni shift SHRT
+
+compare:
+	mov a,d
+	cmp h
+	rnz 
+
+	mov a,e
+	cmp l	
+	ret
+
+step:
+	mov b,h
+	mov c,l
+	ret
+
+cr:
+	mvi a,0dh
+	out 01h
+	mvi a,0ah
+	out 01h
+	ret
+
+ou:
+	push psw
+	mvi a,46h
+	out 01h
+	pop psw
+	ret
+
+;desni shift
 shrt:
 	rrc
 	ani 7fh
-ret
+	ret
+
 
 endmy:
-	mvi a,45h
-	out 01h
-
+	call cr
 	pop psw
 	pop h
 	pop d
@@ -1314,5 +1341,4 @@ endmy:
 ;    end dispatch;
 
 ;end dsptch;
-
-	end
+end
