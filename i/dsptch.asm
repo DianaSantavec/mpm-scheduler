@@ -1056,7 +1056,7 @@ noz80save:
 	dw	@23
 	dw	@24
 @6:
-	;moje
+;moje
 	push psw
 	lda svstat
 	ora a
@@ -1070,7 +1070,7 @@ skip:
 	push h
 	lxi h,svstat
 	mvi m,0h
-	pop hd
+	pop h
 	pop psw
 
 endstat:
@@ -1283,7 +1283,7 @@ noz80restore:
 	sta bpcpu
 
 
-	jmp fin
+	;jmp fin
 
 nocount:
 	
