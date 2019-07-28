@@ -498,7 +498,8 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-	JNC	@5
+	;moj komentar linija ispod
+	;JNC	@5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
@@ -567,9 +568,9 @@ pdisp:
 	push h
 	push b
 
-	mvi a,0h
+	mvi a,9h
 	mov b,m
-	cmp b
+	cmp m
 	pop b
 	;ora a
 
@@ -599,6 +600,7 @@ pdisp:
 	mov a,m
 	ora a
 	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira
+	;jmp endmy
 
 	dcr m
 
@@ -611,7 +613,7 @@ pdisp:
 	;pop psw
 
 	lxi h,svstat
-	mvi m,1h		;ne treba da se pozove insert$process
+	;mvi m,1h		;ne treba da se pozove insert$process
 	jmp con
 
 endmy:
