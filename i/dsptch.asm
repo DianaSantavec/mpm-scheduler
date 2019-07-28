@@ -565,6 +565,17 @@ pdisp:
 	inx	h
 
 ;moje
+
+	push psw
+	push b
+	call cr
+	mov b,m
+	mvi a,30h
+	add b
+	out 01h
+	pop b
+	pop psw	
+
 	push psw
 	push h
 	push b
@@ -1060,23 +1071,23 @@ noz80save:
 	dw	@24
 @6:
 ;moje
-	push psw
-	lda svstat
-	ora a
-	jnz skip	;ako ne treba da udje u insert$process jer mu je status tako rekao
+	;push psw
+	;lda svstat
+	;ora a
+	;jnz skip	;ako ne treba da udje u insert$process jer mu je status tako rekao
 
-	pop psw
+	;pop psw
 	CALL	INSERTPROCESS
-	jmp endstat
+	;jmp endstat
 
-skip:
-	push h
-	lxi h,svstat
-	mvi m,0h
-	pop h
-	pop psw
+;skip:
+;	push h
+;	lxi h,svstat
+;	mvi m,0h
+;	pop h
+;	pop psw
 
-endstat:
+;endstat:
 ;kraj mog
 @7:
 
@@ -1171,7 +1182,28 @@ endstat:
 	DCX	H
 	XCHG
 	LXI	B,RLR
+
+;moje;moje
+	push psw
+	lda svstat
+	ora a
+	jnz skip	;ako ne treba da udje u insert$process jer mu je status tako rekao
+
+	pop psw
 	CALL	INSERTPROCESS
+	jmp endstat
+
+skip:
+	push h
+	lxi h,svstat
+	mvi m,0h
+	pop h
+	pop psw
+
+endstat:
+
+
+	;CALL	INSERTPROCESS
 ;            drl = pdadr;
 ;          end;
 	JMP	@37
