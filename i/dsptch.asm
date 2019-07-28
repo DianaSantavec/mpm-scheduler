@@ -258,7 +258,7 @@ pdladr:
 
 ;moje
 bpcpu:
-	db 1
+	db 0
 svstat:
 	db 0
 svstat2:
@@ -566,6 +566,7 @@ pdisp:
 	push psw
 	push h
 	push b
+
 	mvi a,0h
 	mov b,m
 	cmp b
@@ -582,58 +583,64 @@ pdisp:
 	;pop b
 	;pop psw	
 
-	jnz endmy	;znaci da je status 0, treba proveriti broj potrosenih uzastopnih quanti    13    9
+	jnz endmy
+	;znaci da je status 0, treba proveriti broj potrosenih uzastopnih quanti    13    9
 	lxi h,bpcpu
 	;dcr m moved to line after line jz endmy2
 
-	push psw
+	;push psw
 	;call cr
-	mvi a,30h
-	add m
-	out 01h
+	;mvi a,30h
+	;add m
+	;out 01h
 	;call cr
-	pop psw
+	;pop psw
 
 	mov a,m
 	ora a
-	jz endmy2	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira
+	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira
 
 	dcr m
 
-	push psw
+	;push psw
 	;call cr
-	mvi a,30h
-	add m
-	out 01h
-	call cr
-	pop psw
+	;mvi a,30h
+	;add m
+	;out 01h
+	;call cr
+	;pop psw
 
 	lxi h,svstat
 	mvi m,1h		;ne treba da se pozove insert$process
 	jmp con
 
 endmy:
+	lxi h,svstat2
+	mvi m,1h
+	
 	pop h
 	pop psw
-;kraj mog
+
 
 	mvi	m,9
 	jmp endcon
 
-endmy2:
-	lxi h,svstat2
-	mvi m,1h
+;endmy2:
+	;lxi h,svstat2
+	;mvi m,1h
 
-	pop h
-	mvi m,9
-	pop psw
-	jmp endcon
+	;pop h
+	;pop psw
+	;mvi m,9
+	
+	;jmp endcon
 
 ;jedna linija
 con:
 	pop h
 	pop psw
 endcon:
+;kraj mog sem mvi m,9
 
 	lhld	svhl
 
@@ -1060,8 +1067,10 @@ noz80save:
 	jmp endstat
 
 skip:
+	push h
 	lxi h,svstat
 	mvi m,0h
+	pop hd
 	pop psw
 
 endstat:
@@ -1273,10 +1282,13 @@ noz80restore:
 
 	sta bpcpu
 
+
+	jmp fin
+
 nocount:
 	
-	lxi h,svstat2
-	mvi m,0h
+	;lxi h,svstat2
+	;mvi m,0h
 
 	pop psw
 	pop h
