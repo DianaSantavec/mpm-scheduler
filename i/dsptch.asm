@@ -498,8 +498,9 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-	;moj komentar linija ispod
+	;moje komentar linija ispod
 	;JNC	@5
+	jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
