@@ -255,22 +255,19 @@ nextthreadptr:
 ;  declare pdladr address;
 pdladr:
 	dw	0
-
-; /*moje*/
-; definise bajt za pamcenje broj puta koliko je proces bio na procesoru
-bpcpu: 
-	db	1
-;definise adresu prvog deskriptora koji se ponavlja pl first process descriptor
-plfirstpd:
-	dw    0
-
-bpdsp:
-	db 1
-; /*kraj mog*/
-
 ;  declare pdl based pdladr process$descriptor;
 
 ;  declare first$time boolean;
+
+
+;moje
+bpcpu:
+	db 0
+svstat:
+	db 0
+svstat2:
+	db 0				;moram onaj privu svstat odmah nulirati, jer onda izostaje insertprocess i za sve ostale processe, ustv ne... to je ne moguce jer se na @6 skace samo za prvi proces.. (valjda?) to treba proveriti
+;kraj mog
 
 
 ;/*
@@ -497,18 +494,12 @@ insertprocess:
 	INX	H
 	INX	H
 	INX	H
-	;push a
-	;push b
-	;mvi a,0FFh
-	;mvi b,0FFFFh
-	;sub b	;da uveksetujem carry just in case...
-	;pop b
-	;pop a
-	;SUB	M
+	SUB	M
 	DCX	H
 	DCX	H
 	DCX	H
-	;JNC @5
+	;JNC	@5
+	;moje linija
 	jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
@@ -572,6 +563,55 @@ pdisp:
 	lhld	rlr
 	inx	h
 	inx	h
+
+;moje
+	push psw
+	push h
+
+	mov a,m
+	ora a
+
+;test
+    ;push psw
+ ;   mvi a,30h
+;	add m
+  ;  out 01h
+  ;  pop psw
+;kraj testa
+
+
+	jnz endmy
+	;znaci da je status 0, treba proveriti broj potrosenih uzastopnih quanti    13    9
+
+	mvi a,09h
+	cmp m
+	jnz endmy
+
+	lxi h,bpcpu
+	;dcr m moved to line after line jz endmy2
+	mov a,m
+	ora a
+	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira
+	;jmp endmy
+	dcr m
+	lxi h,svstat
+	mvi m,1h		;ne treba da se pozove insert$process
+	jmp con
+
+endmy:
+	lxi h,svstat2
+	mvi m,1h
+	
+	pop h
+	pop psw
+	jmp endcon
+
+con:
+	pop h
+	pop psw
+endcon:
+;kraj mog
+
 	mvi	m,9
 	lhld	svhl
 
@@ -987,7 +1027,35 @@ noz80save:
 	dw	@23
 	dw	@24
 @6:
+;	push h
+	;push psw
+	;lxi h,rlr
+	;inx h
+	;inx h
+	;mvi m,0h
+	;pop psw
+	;pop h
+
+;moje
+	push psw
+	lda svstat
+	ora a
+	jnz skip	;ako ne treba da udje u insert$process jer mu je status i bpcpu osgovarajuci
+
+	pop psw
 	CALL	INSERTPROCESS
+	jmp endstat
+
+skip:
+	push h
+	lxi h,svstat
+	mvi m,0h
+	pop h
+	pop psw
+
+endstat:
+
+;	CALL	INSERTPROCESS
 @7:
 
 ;          /* poll all required devices and place any
@@ -1041,7 +1109,7 @@ noz80save:
 	lhld	drl
 	xchg
 	mov	m,e
-	inx	h;bilo LXI valjda greskom
+	inx	h
 	mov	m,d
 	dcx	h
 ;              drl = pdadr;
@@ -1151,115 +1219,23 @@ noz80restore:
 	sphl
 	lhld	svhl
 
-;/*MOJE*/
+;moje
+;izracunaj novi uzastopni broj quanti za prvi proces
+
 	push b
 	push d
 	push h
 	push psw
 
-	lhld bpdsp
-	dcx h
-	mvi a,00h
-	ora h
-	jnz con  ;znaci vec je setovano na 76ffh nula
+	lda svstat2
+	ora a
+	;jnz nocount	;ne treba racunati nego se jos uvek oduzima
+	jz nocount
 
-	shld bpdsp
-	lxi h,0ecffh
-	mvi m,00h
-	jmp endmy
-
-con:
-	lxi h,0ecffh
-	mvi b,00h
-	mov a,m
-	ora b
-	jz endmy
-
-;moj dsptch
-	lda bpcpu
-	dcr a	
-	sta bpcpu
+	lxi h,svstat2
+	mvi m,0h
 	
-	;push psw
-	;mvi l,30h
-	;add l
-	;out 01h
-	;pop psw
 
-	jz terminate ;ukoliko je iskoristio sve svoje pokusaje
-
-	;de je trazena adresa
-	lhld plfirstpd
-	mov d,h
-	mov e,l
-	lhld rlr
-	
-	mov a,h
-	cmp d
-	jnz notfir
-
-	mov a,l
-	cmp e
-	;cz ou
-	jz endmy
-
-notfir:
-	lhld plfirstpd
-	mov d,h
-	mov e,l
-	lxi b,rlr
-
-while:
-	ldax b
-	mov l,a
-	inx b
-	ldax b
-	mov h,a
-	dcx b	;ovoga NIJE bilo u prethodnom kodu
-	ora l
-	jz terminate ;ovaj je idle i znaci da je moj proces zavrsio
-	;IDLE mi je bitniji uslov zato ide ovim redom
-	call compare
-	cnz step
-	jnz while ;nisu jednaki 
-
-insert:
-	;pl_trenutnog = pl_sledeceg_posle_trazenog
-	mov a,m
-	stax b
-	inx b
-	inx h
-	mov a,m
-	stax b
-	dcx b
-	dcx h
-
-	;pl_trazenog = RLR
-	push h
-	lhld rlr
-	mov a,l
-	stax d
-	inx d
-	mov a,h
-	stax d
-	dcx d
-	pop h
-
-	;rlr = plfirstpd
-	lxi b,rlr
-	mov a,e
-	ldax b
-	inx b
-	mov a,d
-	ldax b
-	dcx b
-	jmp endmy
-
-terminate:
-	lhld rlr
-	shld plfirstpd
-
-	;de = adresa prioriteta
 	lxi b,rlr
 	ldax b
 	mov e,a
@@ -1287,24 +1263,26 @@ terminate:
 
 	sta bpcpu
 
-	;mvi b,30h
-	;add b
-	;out 01h
 
-	jmp endmy 
+	;jmp fin
 
-compare:
-	mov a,d
-	cmp h
-	rnz 
+nocount:
+	
+	;lxi h,svstat2
+	;mvi m,0h
 
-	mov a,e
-	cmp l	
-	ret
+	pop psw
+	pop h
+	pop d
+	pop b
 
-step:
-	mov b,h
-	mov c,l
+
+	jmp fin
+
+;desni shift
+shrt:
+	rrc
+	ani 7fh
 	ret
 
 cr:
@@ -1314,31 +1292,16 @@ cr:
 	out 01h
 	ret
 
-ou:
-	push psw
-	mvi a,46h
-	out 01h
-	pop psw
-	ret
 
-;desni shift
-shrt:
-	rrc
-	ani 7fh
-	ret
+fin:
+;kraj mog
 
 
-endmy:
-	call cr
-	pop psw
-	pop h
-	pop d
-	pop b
-;/*kraj mog*/
 	EI
 	RET
 
 ;    end dispatch;
 
 ;end dsptch;
-end
+
+	end
