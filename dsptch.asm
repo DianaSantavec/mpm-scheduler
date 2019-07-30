@@ -267,6 +267,8 @@ svstat:
 	db 0
 svstat2:
 	db 0				;moram onaj privu svstat odmah nulirati, jer onda izostaje insertprocess i za sve ostale processe, ustv ne... to je ne moguce jer se na @6 skace samo za prvi proces.. (valjda?) to treba proveriti
+firadr:
+	dw 0
 ;kraj mog
 
 
@@ -561,37 +563,67 @@ pdisp:
 	di
 	shld	svhl
 	lhld	rlr
-	inx	h
-	inx	h
 
 ;moje
 	push psw
 	push h
+	push d
 
-	mov a,m
-	ora a
+	xchg
 
-;test
-    ;push psw
- ;   mvi a,30h
-;	add m
-  ;  out 01h
-  ;  pop psw
-;kraj testa
+	lhld firadr
+	mov a,d
+	cmp h
+	jnz nosameadr
+
+	mov a,e
+	cmp l
+	
+	jz sameadr
+
+nosameadr:
+
+	call cr
+	mvi a,30h
+	out 01h
+
+	;ako nije proces od prethodnog puta na prvom mestu
+	lxi h,firadr
+	mov m,e
+	inx h
+	mov m,d
+	pop d
+
+	;treba da racuna broj quanti
+	lxi h,svstat2
+	mvi m,1h
+
+	jmp con
 
 
-	jnz endmy
-	;znaci da je status 0, treba proveriti broj potrosenih uzastopnih quanti    13    9
+sameadr:
 
-	mvi a,09h
-	cmp m
-	jnz endmy
+	call cr
+	mvi a,31h
+	out 01h
+
+	pop d
+	pop h
+	pop psw
+
+	push psw
+	push h
+	
+;njihovo
+	inx	h
+	inx	h
+;kraj njihovog
 
 	lxi h,bpcpu
 	;dcr m moved to line after line jz endmy2
 	mov a,m
 	ora a
-	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira
+	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira i da se racuna broj uzastopnih quanti za taj novi proces koji ce postati
 	;jmp endmy
 	dcr m
 	lxi h,svstat
