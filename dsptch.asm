@@ -262,7 +262,7 @@ pdladr:
 
 ;moje
 bpcpu:
-	db 0
+	db 1
 svstat:
 	db 0
 svstat2:
@@ -483,6 +483,7 @@ insertprocess:
 	LDAX	B
 	MOV	H,A
 ;        if (nxtpdl = 0) or
+
 	ORA	L
 	INX	D
 	INX	D
@@ -500,9 +501,9 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-	;JNC	@5
+	JNC	@5
 	;moje linija
-	jmp @5
+	;jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
@@ -568,11 +569,14 @@ pdisp:
 	push psw
 	push h
 	push d
+	
 
 	xchg
 
 	lhld firadr
+
 	mov a,d
+	
 	cmp h
 	jnz nosameadr
 
@@ -582,11 +586,6 @@ pdisp:
 	jz sameadr
 
 nosameadr:
-
-	call cr
-	mvi a,30h
-	out 01h
-
 	;ako nije proces od prethodnog puta na prvom mestu
 	lxi h,firadr
 	mov m,e
@@ -594,56 +593,86 @@ nosameadr:
 	mov m,d
 	pop d
 
+	lxi h,bpcpu
+	mvi m,0h
+
+
 	;treba da racuna broj quanti
-	lxi h,svstat2
-	mvi m,1h
+
+	;lxi h,svstat2
+	;mvi m,1h
 
 	jmp con
 
 
 sameadr:
 
-	call cr
-	mvi a,31h
-	out 01h
-
 	pop d
-	pop h
-	pop psw
-
-	push psw
-	push h
-	
-;njihovo
-	inx	h
-	inx	h
-;kraj njihovog
 
 	lxi h,bpcpu
-	;dcr m moved to line after line jz endmy2
+	dcr m
 	mov a,m
 	ora a
-	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira i da se racuna broj uzastopnih quanti za taj novi proces koji ce postati
+;	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira i da se racuna broj uzastopnih quanti za taj novi proces koji ce postati
 	;jmp endmy
-	dcr m
+	jz con
+
 	lxi h,svstat
 	mvi m,1h		;ne treba da se pozove insert$process
-	jmp con
-
-endmy:
-	lxi h,svstat2
-	mvi m,1h
-	
-	pop h
-	pop psw
 	jmp endcon
 
+;endmy:
+	;lxi h,svstat2
+	;mvi m,1h
+	
+;	pop h
+;	pop psw
+;	jmp endcon
+
 con:
+	;DODATO
+	;pop d
+
+	push b
+	push d	
+
+	lxi b,rlr
+	ldax b
+	mov e,a
+	inx b
+	ldax b
+	mov d,a
+
+	inx d
+	inx d
+	inx d
+	ldax d
+	dcx d
+	dcx d
+	dcx d
+
+	call shrt
+	call shrt
+	call shrt
+	call shrt
+
+	;15 - a da bi se idle (255) izvrsio 0 (tj) put, a 0 15 (tj 16)puta
+	mov d,a
+	mvi a,10h
+	sub d
+
+	sta bpcpu
+
+	pop d
+	pop b
+
+endcon:
 	pop h
 	pop psw
-endcon:
 ;kraj mog
 
+	inx	h
+	inx	h
 	mvi	m,9
 	lhld	svhl
 
@@ -1070,22 +1099,43 @@ noz80save:
 
 ;moje
 	push psw
+
 	lda svstat
 	ora a
 	jnz skip	;ako ne treba da udje u insert$process jer mu je status i bpcpu osgovarajuci
 
 	pop psw
 	CALL	INSERTPROCESS
+
 	jmp endstat
 
+;desni shift
+shrt:
+	rrc
+	ani 7fh
+	ret
+
+cr:
+	mvi a,0dh
+	out 01h
+	mvi a,0ah
+	out 01h
+	ret
+
 skip:
-	push h
-	lxi h,svstat
-	mvi m,0h
-	pop h
 	pop psw
 
+	lxi h,svstat
+	mvi m,0h
+
 endstat:
+;	mvi h,0h
+ ;;   mvi b,0h
+ ;   mvi d,0h
+ ;   mvi a,0h
+;kraj mog
+
+
 
 ;	CALL	INSERTPROCESS
 @7:
@@ -1251,83 +1301,7 @@ noz80restore:
 	sphl
 	lhld	svhl
 
-;moje
-;izracunaj novi uzastopni broj quanti za prvi proces
-
-	push b
-	push d
-	push h
-	push psw
-
-	lda svstat2
-	ora a
-	;jnz nocount	;ne treba racunati nego se jos uvek oduzima
-	jz nocount
-
-	lxi h,svstat2
-	mvi m,0h
-	
-
-	lxi b,rlr
-	ldax b
-	mov e,a
-	inx b
-	ldax b
-	mov d,a
-
-	inx d
-	inx d
-	inx d
-	ldax d
-	dcx d
-	dcx d
-	dcx d
-
-	call shrt
-	call shrt
-	call shrt
-	call shrt
-
-	;15 - a da bi se idle (255) izvrsio 0 (tj) put, a 0 15 (tj 16)puta
-	mov d,a
-	mvi a,10h
-	sub d
-
-	sta bpcpu
-
-
-	;jmp fin
-
-nocount:
-	
-	;lxi h,svstat2
-	;mvi m,0h
-
-	pop psw
-	pop h
-	pop d
-	pop b
-
-
-	jmp fin
-
-;desni shift
-shrt:
-	rrc
-	ani 7fh
-	ret
-
-cr:
-	mvi a,0dh
-	out 01h
-	mvi a,0ah
-	out 01h
-	ret
-
-
-fin:
-;kraj mog
-
+;ovde
 
 	EI
 	RET
