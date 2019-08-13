@@ -476,6 +476,8 @@ insertprocess:
 ;      do forever;
 ;        pdladr = nxtpdl;
 	; BC = NXTPDLADR, DE = PDADR
+
+
 @27:
 	LDAX	B
 	MOV	L,A
@@ -492,6 +494,7 @@ insertprocess:
 	DCX	D
 	DCX	D
 	DCX	D
+
 	JZ	@27A
 	; HL = PDLADR
 	INX	H
@@ -501,9 +504,39 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-	JNC	@5
+
+;moje
+	push psw
+	lda svstat
+	ora a
+	jz krmog
+	push h
+	lxi h,svstat
+	mvi m,0h
+	pop h
+	pop psw
+	;jmp @27A
+	jmp endmy
+
+shrt:
+	rrc
+	ani 7fh
+	ret
+
+cr:
+	mvi a,0dh
+	out 01h
+	mvi a,0ah
+	out 01h
+	ret
+
+krmog:
+	pop psw
+;kraj mog
+
+	;JNC	@5
 	;moje linija
-	;jmp @5
+	jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
 ;          pd.pl = nxtpdl;
@@ -521,6 +554,7 @@ insertprocess:
 	MOV	A,E
 	STAX B
 ;          return;
+endmy:
 	RET
 ;        end;
 ;        nxtpdladr = nxtpdl;
@@ -569,7 +603,6 @@ pdisp:
 	push psw
 	push h
 	push d
-	
 
 	xchg
 
@@ -586,15 +619,13 @@ pdisp:
 	jz sameadr
 
 nosameadr:
+
 	;ako nije proces od prethodnog puta na prvom mestu
 	lxi h,firadr
 	mov m,e
 	inx h
 	mov m,d
 	pop d
-
-	lxi h,bpcpu
-	mvi m,0h
 
 
 	;treba da racuna broj quanti
@@ -610,6 +641,7 @@ sameadr:
 	pop d
 
 	lxi h,bpcpu
+
 	dcr m
 	mov a,m
 	ora a
@@ -1097,47 +1129,8 @@ noz80save:
 	;pop psw
 	;pop h
 
-;moje
-	push psw
-
-	lda svstat
-	ora a
-	jnz skip	;ako ne treba da udje u insert$process jer mu je status i bpcpu osgovarajuci
-
-	pop psw
 	CALL	INSERTPROCESS
 
-	jmp endstat
-
-;desni shift
-shrt:
-	rrc
-	ani 7fh
-	ret
-
-cr:
-	mvi a,0dh
-	out 01h
-	mvi a,0ah
-	out 01h
-	ret
-
-skip:
-	pop psw
-
-	lxi h,svstat
-	mvi m,0h
-
-endstat:
-;	mvi h,0h
- ;;   mvi b,0h
- ;   mvi d,0h
- ;   mvi a,0h
-;kraj mog
-
-
-
-;	CALL	INSERTPROCESS
 @7:
 
 ;          /* poll all required devices and place any
