@@ -477,7 +477,6 @@ insertprocess:
 ;        pdladr = nxtpdl;
 	; BC = NXTPDLADR, DE = PDADR
 
-
 @27:
 	LDAX	B
 	MOV	L,A
@@ -485,6 +484,7 @@ insertprocess:
 	LDAX	B
 	MOV	H,A
 ;        if (nxtpdl = 0) or
+
 
 	ORA	L
 	INX	D
@@ -505,7 +505,7 @@ insertprocess:
 	DCX	H
 	DCX	H
 
-;moje
+	;moje
 	push psw
 	lda svstat
 	ora a
@@ -513,22 +513,11 @@ insertprocess:
 	push h
 	lxi h,svstat
 	mvi m,0h
+	mvi a,43h
+	out 01h
 	pop h
-	pop psw
-	;jmp @27A
-	jmp endmy
-
-shrt:
-	rrc
-	ani 7fh
-	ret
-
-cr:
-	mvi a,0dh
-	out 01h
-	mvi a,0ah
-	out 01h
-	ret
+	pop psw 
+	jmp @27A
 
 krmog:
 	pop psw
@@ -554,7 +543,6 @@ krmog:
 	MOV	A,E
 	STAX B
 ;          return;
-endmy:
 	RET
 ;        end;
 ;        nxtpdladr = nxtpdl;
@@ -604,67 +592,61 @@ pdisp:
 	push h
 	push d
 
-	xchg
-
-	lhld firadr
-
-	mov a,d
-	
-	cmp h
-	jnz nosameadr
-
-	mov a,e
-	cmp l
-	
-	jz sameadr
-
-nosameadr:
-
-	;ako nije proces od prethodnog puta na prvom mestu
-	lxi h,firadr
-	mov m,e
-	inx h
-	mov m,d
-	pop d
-
-
-	;treba da racuna broj quanti
-
-	;lxi h,svstat2
-	;mvi m,1h
-
-	jmp con
-
-
-sameadr:
-
-	pop d
+	push b
+mvi b,30h
+	mvi a,0fh
+	ana l
+	add b
+	out 01h
+	mov a,l
+	call shrt
+	call shrt
+	call shrt
+call shrt
+	mvi b,0fh
+	ana b
+mvi b,30h
+	add b
+	out 01h
+	mvi b,30h
+	mvi a,0fh
+	ana h
+	add b
+	out 01h
+	mov a,h
+	call shrt
+	call shrt
+	call shrt
+	call shrt
+	mvi b,0fh
+	ana b
+	mvi b,30h
+	add b
+	out 01h
+call cr
+pop b
 
 	lxi h,bpcpu
-
-	dcr m
 	mov a,m
 	ora a
-;	jz endmy	;znaci da je potrosio sve uzastopne quante i da treba normalno da se tretira i da se racuna broj uzastopnih quanti za taj novi proces koji ce postati
-	;jmp endmy
-	jz con
-
-	lxi h,svstat
-	mvi m,1h		;ne treba da se pozove insert$process
-	jmp endcon
-
-;endmy:
-	;lxi h,svstat2
-	;mvi m,1h
+	jnz nonull
+	;ako nije potrosio quante treba proviriti da li jos postoji
 	
-;	pop h
-;	pop psw
-;	jmp endcon
 
-con:
-	;DODATO
-	;pop d
 
+skip:
+	;ako je procs potrosio svoje quante ili zavrsio izvrsavanje
+	lhld rlr
+	xchg
+	lxi h,firadr
+	
+	mov m,e
+	inx h
+	inx d
+	mov m,d
+
+count:
+	;racuna broj uzastopnih quanti za nov proces
 	push b
 	push d	
 
@@ -697,8 +679,46 @@ con:
 
 	pop d
 	pop b
+	
+	jmp endcon
+
+nonull:
+	dcr m
+	mvi a,41h
+	out 01h
+
+	lhld firadr
+	xchg
+	lhld rlr
+
+	mov a,d
+	cmp h
+	jnz skip
+	mov a,e
+	cmp l
+	jnz skip
+
+	mvi a,42h
+	out 01h
+	lxi h,svstat
+	mvi m,1h		;ne treba da se pozove insert$process
+	jmp endcon
+
+shrt:
+	rrc
+	ani 7fh
+	ret
+
+cr:
+	mvi a,0dh
+	out 01h
+	mvi a,0ah
+	out 01h
+	ret
+
 
 endcon:
+	pop d
 	pop h
 	pop psw
 ;kraj mog
@@ -1129,8 +1149,13 @@ noz80save:
 	;pop psw
 	;pop h
 
+
+
+
+
 	CALL	INSERTPROCESS
 
+	
 @7:
 
 ;          /* poll all required devices and place any
@@ -1205,6 +1230,7 @@ noz80save:
 ;          /* insert all processes on ready list from
 ;             the dispatcher ready list               */
 ;          do while drl <> 0;
+
 	LHLD	DRL
 	MOV	A,H
 	ORA	L
@@ -1245,6 +1271,7 @@ noz80save:
 	MOV	B,H
 	MOV	C,L
 	CALL	XIOSMS
+
 
 ;        stackptr = rlrpd.stkptr;
 @38:
@@ -1295,7 +1322,6 @@ noz80restore:
 	lhld	svhl
 
 ;ovde
-
 	EI
 	RET
 
