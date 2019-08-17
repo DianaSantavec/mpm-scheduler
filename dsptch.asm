@@ -255,23 +255,19 @@ nextthreadptr:
 ;  declare pdladr address;
 pdladr:
 	dw	0
+
 ;  declare pdl based pdladr process$descriptor;
 
 ;  declare first$time boolean;
 
-
-;moje
+;moje 1
 bpcpu:
 	db 1
 svstat:
 	db 0
-svstat2:
-	db 0				;moram onaj privu svstat odmah nulirati, jer onda izostaje insertprocess i za sve ostale processe, ustv ne... to je ne moguce jer se na @6 skace samo za prvi proces.. (valjda?) to treba proveriti
 firadr:
 	dw 0
 ;kraj mog
-
-
 ;/*
 ;  delay$list$insert:
 ;          The purpose of the delay list insert procedure is to
@@ -476,7 +472,6 @@ insertprocess:
 ;      do forever;
 ;        pdladr = nxtpdl;
 	; BC = NXTPDLADR, DE = PDADR
-
 @27:
 	LDAX	B
 	MOV	L,A
@@ -484,8 +479,6 @@ insertprocess:
 	LDAX	B
 	MOV	H,A
 ;        if (nxtpdl = 0) or
-
-
 	ORA	L
 	INX	D
 	INX	D
@@ -494,7 +487,6 @@ insertprocess:
 	DCX	D
 	DCX	D
 	DCX	D
-
 	JZ	@27A
 	; HL = PDLADR
 	INX	H
@@ -504,27 +496,8 @@ insertprocess:
 	DCX	H
 	DCX	H
 	DCX	H
-
-	;moje
-	push psw
-	lda svstat
-	ora a
-	jz krmog
-	push h
-	lxi h,svstat
-	mvi m,0h
-	mvi a,43h
-	out 01h
-	pop h
-	pop psw 
-	jmp @27A
-
-krmog:
-	pop psw
-;kraj mog
-
 	;JNC	@5
-	;moje linija
+	;moje 2 linija
 	jmp @5
 ;           (pd.priority < pdl.priority) then
 ;        do;
@@ -587,68 +560,28 @@ pdisp:
 	shld	svhl
 	lhld	rlr
 
-;moje
+;moje 3
 	push psw
 	push h
 	push d
 
-	push b
-mvi b,30h
-	mvi a,0fh
-	ana l
-	add b
-	out 01h
-	mov a,l
-	call shrt
-	call shrt
-	call shrt
-call shrt
-	mvi b,0fh
-	ana b
-mvi b,30h
-	add b
-	out 01h
-	mvi b,30h
-	mvi a,0fh
-	ana h
-	add b
-	out 01h
-	mov a,h
-	call shrt
-	call shrt
-	call shrt
-	call shrt
-	mvi b,0fh
-	ana b
-	mvi b,30h
-	add b
-	out 01h
-call cr
-pop b
-
 	lxi h,bpcpu
+	dcr m
 	mov a,m
 	ora a
 	jnz nonull
-	;ako nije potrosio quante treba proviriti da li jos postoji
-	
 
-
-skip:
-	;ako je procs potrosio svoje quante ili zavrsio izvrsavanje
+;zapamti adresu proces deskriptora za koju ce biti vezan novi broj quanti (racuna se takodje)
 	lhld rlr
 	xchg
 	lxi h,firadr
-	
 	mov m,e
 	inx h
-	inx d
 	mov m,d
 
 count:
 	;racuna broj uzastopnih quanti za nov proces
 	push b
-	push d	
 
 	lxi b,rlr
 	ldax b
@@ -677,45 +610,20 @@ count:
 
 	sta bpcpu
 
-	pop d
 	pop b
 	
 	jmp endcon
 
 nonull:
-	dcr m
-	mvi a,41h
-	out 01h
-
-	lhld firadr
-	xchg
-	lhld rlr
-
-	mov a,d
-	cmp h
-	jnz skip
-	mov a,e
-	cmp l
-	jnz skip
-
-	mvi a,42h
-	out 01h
+;ako nije potrosio quante treba preskociti insertprocess poziv
 	lxi h,svstat
-	mvi m,1h		;ne treba da se pozove insert$process
+	mvi m,1h
 	jmp endcon
 
 shrt:
 	rrc
 	ani 7fh
 	ret
-
-cr:
-	mvi a,0dh
-	out 01h
-	mvi a,0ah
-	out 01h
-	ret
-
 
 endcon:
 	pop d
@@ -824,6 +732,22 @@ noz80save:
 	MOV	A,M
 	ORA	A
 	JZ	@7
+
+;moje 4
+	push psw
+	mvi a,9h
+	cmp m
+	jz statok
+	push h
+	lxi h,svstat
+	mvi m,0h
+	lxi h,bpcpu
+	mvi m,1h
+	pop h
+statok:
+	pop psw
+;kraj mog
+
 	DCX	H
 	DCX	H
 	MOV	E,M
@@ -1140,22 +1064,34 @@ noz80save:
 	dw	@23
 	dw	@24
 @6:
-;	push h
-	;push psw
-	;lxi h,rlr
-	;inx h
-	;inx h
-	;mvi m,0h
-	;pop psw
-	;pop h
+;moje
+	push psw
+	lda svstat
+	ora a
+	jz noskip
+	lxi h,svstat
+	mvi m,0h
 
+	lhld rlr
+	xchg
+	lhld firadr
+	mov m,e
+	inx h
+	mov m,d
 
+	lhld firadr
+	xchg
+	lxi rlr
+	mov m,e
+	inx h
+	mov m,d
 
-
-
+	pop psw
+	jmp @7
+noskip:
+	pop psw
+;kraj mog
 	CALL	INSERTPROCESS
-
-	
 @7:
 
 ;          /* poll all required devices and place any
@@ -1230,7 +1166,6 @@ noz80save:
 ;          /* insert all processes on ready list from
 ;             the dispatcher ready list               */
 ;          do while drl <> 0;
-
 	LHLD	DRL
 	MOV	A,H
 	ORA	L
@@ -1271,7 +1206,6 @@ noz80save:
 	MOV	B,H
 	MOV	C,L
 	CALL	XIOSMS
-
 
 ;        stackptr = rlrpd.stkptr;
 @38:
@@ -1321,7 +1255,6 @@ noz80restore:
 	sphl
 	lhld	svhl
 
-;ovde
 	EI
 	RET
 
