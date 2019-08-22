@@ -568,16 +568,22 @@ pdisp:
 	lxi h,bpcpu
 	dcr m
 	mov a,m
+	mvi d,30h
+	add d
+	out 01h
+	mov a,m
 	ora a
 	jnz nonull
 
 ;zapamti adresu proces deskriptora za koju ce biti vezan novi broj quanti (racuna se takodje)
-	lhld rlr
-	xchg
-	lxi h,firadr
-	mov m,e
-	inx h
-	mov m,d
+	;lhld rlr
+	;xchg
+	;lxi h,firadr
+	;mov m,d
+	;inx h
+	;mov m,e
+	lxi h,svstat
+	mvi m,0h
 
 count:
 	;racuna broj uzastopnih quanti za nov proces
@@ -623,6 +629,12 @@ nonull:
 shrt:
 	rrc
 	ani 7fh
+	ret
+cr:
+	mvi a,0dh
+	out 01h
+	mvi a,0ah
+	out 01h
 	ret
 
 endcon:
@@ -729,24 +741,49 @@ noz80save:
 	dcx	h
 	dcx	h
 	dcx	h
-	MOV	A,M
-	ORA	A
-	JZ	@7
+
 
 ;moje 4
 	push psw
 	mvi a,9h
 	cmp m
 	jz statok
+	mvi a,42h
+	out 01h
 	push h
 	lxi h,svstat
 	mvi m,0h
 	lxi h,bpcpu
 	mvi m,1h
 	pop h
+	jmp norm
+
 statok:
+	lda svstat
+	ora a
+	jz norm
+	mvi a,41h
+	out 01h
+	mvi m,0h
+	push h
+	lxi h,svstat
+	mvi m,0h
+	pop h
+	;pop psw
+	;jmp endmy
+
+norm:
 	pop psw
+endmy:
 ;kraj mog
+
+	MOV	A,M
+	ORA	A
+	JZ	@7
+	push psw
+	mvi a,43h
+	out 01h
+	pop psw
 
 	DCX	H
 	DCX	H
@@ -782,6 +819,13 @@ statok:
 ;          do;
 @10:
 ;            call insert$process (dsptch$param,pdadr);
+
+	push psw
+	mvi a,42h
+	out 01h
+	pop psw
+
+
 	MOV	H,B
 	MOV	L,C
 	MOV	B,D
@@ -1065,34 +1109,36 @@ statok:
 	dw	@24
 @6:
 ;moje
-	push psw
-	lda svstat
-	ora a
-	jz noskip
-	lxi h,svstat
-	mvi m,0h
+	;push psw
+	;lda svstat
+	;ora a
+	;jz noskip
+	;lxi h,svstat
+	;mvi m,0h
 
-	lhld rlr
-	xchg
-	lhld firadr
-	mov m,e
-	inx h
-	mov m,d
+    
+	;lhld rlr
+	;xchg
+	;lhld thrdrt
+	;mov m,d
+	;inx h
+	;mov m,e
 
-	lhld firadr
-	xchg
-	lxi rlr
-	mov m,e
-	inx h
-	mov m,d
+	;lhld thrdrt
+	;xchg
+	;lxi h,rlr
+	;mov m,d
+	;inx h
+	;mov m,e
 
-	pop psw
-	jmp @7
-noskip:
-	pop psw
+	;pop psw
+	;jmp @7
+;noskip:
+;	pop psw
 ;kraj mog
 	CALL	INSERTPROCESS
 @7:
+;call cr
 
 ;          /* poll all required devices and place any
 ;             readied processes on the ready list      */
