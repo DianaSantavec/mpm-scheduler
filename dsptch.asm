@@ -267,6 +267,8 @@ svstat:
 	db 0
 firadr:
 	dw 0
+svstat2:
+	db 0
 ;kraj mog
 ;/*
 ;  delay$list$insert:
@@ -570,7 +572,7 @@ pdisp:
 	mov a,m
 	mvi d,30h
 	add d
-	out 01h
+;	out 01h
 	mov a,m
 	ora a
 	jnz nonull
@@ -582,8 +584,19 @@ pdisp:
 	;mov m,d
 	;inx h
 	;mov m,e
+	;lda svstat2
+	;ora a
+	;jnz musdisp
+	;lxi h,svstat
+	;mvi m,01h
+	;jmp count
+
+;musdisp: ;must dispatch
 	lxi h,svstat
 	mvi m,0h
+
+	lxi h,svstat2
+	mvi m,1h
 
 count:
 	;racuna broj uzastopnih quanti za nov proces
@@ -745,11 +758,22 @@ noz80save:
 
 ;moje 4
 	push psw
+	
+	lda svstat2
+	ora a
+	jz skip
+	push h
+	lxi h,svstat2
+	mvi m,0h
+	pop h
+	jmp norm
+
+skip:
 	mvi a,9h
 	cmp m
 	jz statok
 	mvi a,42h
-	out 01h
+;	out 01h
 	push h
 	lxi h,svstat
 	mvi m,0h
@@ -763,7 +787,7 @@ statok:
 	ora a
 	jz norm
 	mvi a,41h
-	out 01h
+;	out 01h
 	mvi m,0h
 	push h
 	lxi h,svstat
@@ -782,7 +806,7 @@ endmy:
 	JZ	@7
 	push psw
 	mvi a,43h
-	out 01h
+;	out 01h
 	pop psw
 
 	DCX	H
@@ -822,7 +846,7 @@ endmy:
 
 	push psw
 	mvi a,42h
-	out 01h
+;	out 01h
 	pop psw
 
 
