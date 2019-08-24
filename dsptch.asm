@@ -267,6 +267,8 @@ svstat:
 	db 0
 firadr:
 	dw 0
+svstat2:
+	db 0
 ;kraj mog
 ;/*
 ;  delay$list$insert:
@@ -570,10 +572,15 @@ pdisp:
 	mov a,m
 	mvi d,30h
 	add d
-	out 01h
+;	out 01h
 	mov a,m
 	ora a
 	jnz nonull
+
+	lxi h,svstat2
+	mvi a,0h
+	cmp m
+	jz dodisp	;uradi dispatch iako je counter 0, tj, skloni taj proces sa prvog mesta
 
 ;zapamti adresu proces deskriptora za koju ce biti vezan novi broj quanti (racuna se takodje)
 	;lhld rlr
@@ -583,6 +590,9 @@ pdisp:
 	;inx h
 	;mov m,e
 	lxi h,svstat
+	mvi m,1h
+
+	lxi h,svstat2
 	mvi m,0h
 
 count:
@@ -636,6 +646,16 @@ cr:
 	mvi a,0ah
 	out 01h
 	ret
+
+dodisp: 
+	lxi h,svstat
+	mvi m,0h
+
+	lxi h,svstat2
+	mvi m,1h
+
+	lxi h,bpcpu
+	mvi m,1h
 
 endcon:
 	pop d
@@ -749,7 +769,7 @@ noz80save:
 	cmp m
 	jz statok
 	mvi a,42h
-	out 01h
+;	out 01h
 	push h
 	lxi h,svstat
 	mvi m,0h
@@ -763,7 +783,7 @@ statok:
 	ora a
 	jz norm
 	mvi a,41h
-	out 01h
+;	out 01h
 	mvi m,0h
 	push h
 	lxi h,svstat
@@ -782,7 +802,7 @@ endmy:
 	JZ	@7
 	push psw
 	mvi a,43h
-	out 01h
+;	out 01h
 	pop psw
 
 	DCX	H
@@ -822,7 +842,7 @@ endmy:
 
 	push psw
 	mvi a,42h
-	out 01h
+;	out 01h
 	pop psw
 
 
