@@ -490,6 +490,19 @@ insertprocess:
 	DCX	D
 	DCX	D
 	JZ	@27A
+	
+	push d
+	push h
+	push psw
+	mov d,m
+	inx h
+	mov a,m
+	ora d
+	jz @27A	;insert before idle
+	pop psw
+	pop h
+	pop d
+
 	; HL = PDLADR
 	INX	H
 	INX	H
@@ -505,6 +518,12 @@ insertprocess:
 ;        do;
 ;          pd.pl = nxtpdl;
 @27A:
+	ora d
+	jnz skippop
+	pop psw
+	pop h
+	pop d
+skippop:
 	MOV	A,L
 	STAX	D
 	INX	D
