@@ -567,6 +567,10 @@ pdisp:
 	push h
 	push d
 
+	lda svstat
+	ora a
+	jnz dodisp
+
 	lxi h,bpcpu
 	dcr m
 	mov a,m
@@ -576,27 +580,24 @@ pdisp:
 	mov a,m
 	ora a
 	jnz nonull
-
-;zapamti adresu proces deskriptora za koju ce biti vezan novi broj quanti (racuna se takodje)
-	;lhld rlr
-	;xchg
-	;lxi h,firadr
-	;mov m,d
-	;inx h
-	;mov m,e
-	;lda svstat2
-	;ora a
-	;jnz musdisp
-	;lxi h,svstat
-	;mvi m,01h
-	;jmp count
+	
+	lxi h,svstat2
+	mvi a,0h
+	cmp m
+	jnz docount ;uradi count
+	mvi m,1h
+	jz dodisp
 
 ;musdisp: ;must dispatch
 	lxi h,svstat
+	mvi m,1h
+
+docount:
+	lxi h,svstat2
 	mvi m,0h
 
-	lxi h,svstat2
-	mvi m,1h
+	;lxi h,svstat2
+	;mvi m,1h
 
 count:
 	;racuna broj uzastopnih quanti za nov proces
@@ -649,6 +650,10 @@ cr:
 	mvi a,0ah
 	out 01h
 	ret
+
+dodisp:	;do dispatch
+	lxi h,svstat
+	mvi m,0h
 
 endcon:
 	pop d
@@ -789,6 +794,9 @@ statok:
 	mvi a,41h
 ;	out 01h
 	mvi m,0h
+	lda svstat2
+	ora a
+	jnz norm
 	push h
 	lxi h,svstat
 	mvi m,0h
