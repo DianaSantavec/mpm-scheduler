@@ -572,7 +572,7 @@ pdisp:
 	mov a,m
 	mvi d,30h
 	add d
-	out 01h
+;	out 01h
 	mov a,m
 	ora a
 	jnz nonull
